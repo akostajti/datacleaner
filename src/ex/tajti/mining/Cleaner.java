@@ -27,7 +27,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * A módosított TANE algoritmust implementáló osztály.
+ * Implements the modified TANE algorithm. This version can be used to find rows breaking some
+ * functional dependencies. These dependencies are computed based on the current contents of the 
+ * database.
+ * <br/>
+ * The description of the original TANE algorithm can be downloaded <a href="http://www.cs.helsinki.fi/research/fdk/datamining/tane/shortpaper.ps">here</a>.
  *
  * @author tajti ákos
  */
@@ -35,86 +39,102 @@ public class Cleaner {
 
     static SimpleDateFormat format = new SimpleDateFormat("yMd-Hm");
     /**
-     * Annak a táblának a neve, amin az algoritmust végre kell hajtani.
+     * The name of the table the functional dependencies are searched on.
      */
     private String table;
+	
     /**
-     * A JDBC url, amivel a metóddusok csatlakozhatnak az adatbázishoz.
+     * The JDBC url to use.
      */
     private String jdbcUrl;
+	
     /**
-     * Azoknak az attribútumoknak a listája, amiket az algoritmusnak figyelmbe kell
-     * vennie. A kulcsokat ki kell hagyni ezek közül.
+	 * The list of the names of the attributes the algorithm has to consider. Mustn't
+	 * contains key attributes.
      */
     private List<String> attributes;
+	
     /**
-     * Azoknak a függőségeknek a listája, amelyek érvényesek. Egy függőség formátuma:
-     * att1:att2->att3
+	 * The list of valid functional dependencies. The format of the dependencies:
+	 * attr1:attr2->attr3
      */
     private List<String> dependencies;
+	
     /**
-     * A jelöltlistákat tartalmazó map. A kulcs mindig egy atribútum halmaz, a hozzá
-     * tartozó érték pedig az arra az attribútum halmazra vonatkozó jelöltek listája.
+	 * Contains the candidate lists. The keys are attribute sets (represented as <code>String</code>),
+	 * the entries are lists of candidates.
      */
     private Map<String, List<String>> candidateLists;
+	
     /**
-     * A partíciókat tartalmazó <code>Map</code>. Ebből a mapből törlődnek azok a
-     * partíciók, amelyekre már nincs szükség.
+	 * Contains the partitions. Unneeded partitions are deleted.
      */
     private Map<String, Partition> partitions;
+	
     /**
-     * A küszöbérték. Ha a törlendő sorok aránya az összes sorhoz képest ennél kisebb,
-     * akor a függőség érvényes.
+	 * If the number of the rows breaking a dependency divided by the total numkber of rows 
+	 * is less then this threshold than the dependency is valid.
      */
     private double epsilon = 0.05;
+	
     /**
-     * Az az érték, aminél kisebb hibával szeretnénk dolgozni, ha mintát veszünk.
+     * We use <code>delta</code> to compute the number of rows in the sample (when working with
+	 * samples instead of all rows). This number represents the error we can live with when using 
+	 * samples. The lower the <code>delta</code> is the higher number of rows the sample must have.
      */
     private double delta = 0.05;
+	
     /**
-     * Ha true, akkor mintavételezéssel megyünk, ha false, akkor nem.
+     * If <code>true</code> he algorithm uses just a portion of the rows.
      */
     private boolean sampled;
+	
     /**
-     * Ha igaz, aor darabokban dolgozza fel a tábla sorait, ha hamis, akkor egyben.
+     * If <code>true</code> the algorithm processes the rows in chunks. This helps to
+	 * prevent <code>OutOfMemoryError</code>s.
      */
     private boolean chunks;
+	
     /**
-     * Megmondja, hogy mekkora darabokban kell feldolgozni a srokat.
+     * Used when <code>chunks</code> is true.
      */
     private int chunkSize;
+	
     /**
-     * A sorok száma a lekérdezés eredményében.
+     * The number of rows in the result of the query.
      */
     private int numberOfRows;
-    /**
-     * Ezzel logolok.
-     */
+
     private Logger logger = Logger.getLogger(this.getClass().getSimpleName());
+	
     /**
-     * Az egyes függőségekhez tartozó törlendő sorokat tartalmazó map.
+     * Contains the rows breaking dependencies. the keys are the dependencies (represented as <code>String</code>s).
+	 * The values are collections of row ids.
      */
     private Map<String, Collection<Integer>> deletandMap = new HashMap<String, Collection<Integer>>();
+	
     /**
-     * Az ellenőrzött függőségek száma.
+     * The number of dependencies checked.
      */
     public static int dependenciesChecked = 0;
+	
     /**
-     * A lehetséges függőségek száma (<code>possibleDependencies >= checkedDependencies</code>).
+     * The number of possible dependencies (<code>possibleDependencies >= checkedDependencies</code>).
      */
     public static int possibleDependencies = 0;
+	
     /**
-     * A kiszámított mintaméret.
+     * The samplesize computed based on <code>delta</code> (and other things).
      */
     private int sampleSize;
+	
     /**
-     * A használt JDBC ddriver neve.
+     * The name of the JDBC driver.
      */
     private String jdbcDriver;
 
     /**
-     * Eltávolítja azokat a partíciókat, amelyekre <code>levelNumber</code> szinten
-     * már nincs szükség.
+	 * Removes the partitions that are not needed at level <code>levelNumber</code>.
      *
      * @param levelNumber
      */
@@ -123,7 +143,7 @@ public class Cleaner {
             Entry<String, Partition> entry = it.next();
 
             String key = entry.getKey();
-            //TODO: emiatt is lehet nullpointerexception
+            // TODO: possible npe
             int levelOfPartition = entry.getValue().getLevel();
             if (levelOfPartition != 0 && levelOfPartition + 1 < levelNumber - 1) {
                 logger.info("cleaning up partition for " + key);
@@ -133,7 +153,7 @@ public class Cleaner {
     }
 
     /**
-     * Rendezi az alap attribútumokhoz tartozó partíciókat.
+	 * Sorts the partitions corresponding to base attributes.
      */
     private void sortBasePartitions() {
         Collections.sort(attributes, new Comparator<String>() {
@@ -142,15 +162,15 @@ public class Cleaner {
                 Partition part1 = partitions.get(o1);
                 Partition part2 = partitions.get(o2);
 
-                //ekvivalenciaosztályok száma szerint csökkenőleg rendezi a partíciókat
+				// descending order based on the number of equivalence classes
                 return part1.getNumberOfClasses() - part2.getNumberOfClasses();
             }
         });
     }
 
     /**
-     * Egy állományba írja az eredményeket. Az állomány a reports könyvtárba kerül. Ha
-     * a könyvtár nem létezik, akkor a metódus létrehozza.
+     * Writes the results to a file in the reports directory (relative to the current working
+	 * directory.
      * 
      * @param builder
      */
@@ -178,16 +198,19 @@ public class Cleaner {
         }
     }
 
-    //<editor-fold desc="a legfontosabb metódusok, az algo lényege">
+    //
+	// The most important part of the code
+	///
+	
     /**
-     * Felépíti a lekérdezést az attribútumlista és a táblanév alapján. Figyelembe veszi,
-     * hogy használunk-e mintát és hogy a partíciókat inkrementálisan kell-e előállítani.
-     * Az inkrementális előállítás jelenleg csak MySQL esetén működik.
-     *
-     * @return A lekérdezés.
+	 * Builds a query bassed on the tablename and the names of the attributes. Incremental
+	 * processing (that is, processing the rows in chunks) is only supported for mysql.
+	 * 
+	 *
+     * @return The query.
      */
     private String createQuery() {
-        //ha mintázott, akkor kiszámítja a mintaméretet.
+        // computing sample size
         if (sampled) {
             sampleSize = (int) ((Math.sqrt((double) numberOfRows) / epsilon) * (attributes.size() + Math.log(1 / delta)));
         }
@@ -201,18 +224,14 @@ public class Cleaner {
         builder.deleteCharAt(builder.length() - 1);
         builder.append(" from ").append(table);
 
-        //TODO: ennél kifinomultabb mintakezelés kellene
+        // TODO: more sophisticated sample handling
         if (!chunks && sampled && sampleSize < numberOfRows) {
-            //builder.append(" where idje mod " + Math.ceil((double)numberOfRows / sampleSize) + " = 0");
             builder.append(" limit 1," + sampleSize);
         }
         return builder.toString();
     }
 
     /**
-     * A lekérdezést úgy építi fel, hogy az csak a <code>firstRow</code>-adik sortól
-     * kezdődő <code>rowNumber</code> darab sort adja vissza.
-     *
      * @param firstRow
      * @param rowNumber
      * @return
@@ -224,7 +243,7 @@ public class Cleaner {
     }
 
     /**
-     * Elkészíti a partíciókat a lekérdezés eredményének minden attribútumára.
+	 * Creates the partitions for all attributes in the result of the query.
      *
      * @throws java.sql.SQLException
      */
@@ -270,10 +289,10 @@ public class Cleaner {
     }
 
     /**
-     * Vissaadja a tábla sorainak számát.
+	 * Returns the number of rows in the table.
      *
-     * @param conn Az adatbáziseléréshez használt kapcsolat.
-     * @return A tábla sorainak száma.
+     * @param conn 
+     * @return 
      */
     private int retreiveTableSize(Connection conn) {
         Statement st = null;
@@ -299,11 +318,10 @@ public class Cleaner {
     }
 
     /**
-     * Megkapja attribútumoknak egy listáját és azokból generálja a következő szintet.
-     * A lista nem csak attribútumokat tartalmazhat, hanem attribútum halmazokat is.
-     * Az atribútum halmazokat reprezentáló sztringekben az attribútumokat egy : választja el.
-     * A metódus feltételezi, hogy az attribútumok rendezettek.
-     *
+	 * Generates the left-sides to check on the next level based on the attributes and attibute sets
+	 * in <code>level</code>. Attribute sets are represented as strings in this format: attr1:attr2:attr3.
+	 * the method assumes that the attributes are ordered.
+	 *
      * @param level Egy adott szint attribútumait/attribútum halmazait tartalmazó lista.
      * @return A következő szint atribútumait/attribútum halmazait tartalmazó lista.
      */
@@ -314,7 +332,7 @@ public class Cleaner {
 
         List<String> result = new ArrayList<String>();
 
-        //külön kezeljük az első szintet..
+        // the first level is handled separately
         if (levelNumber == 1) {
             int size = level.size();
             for (int i = 0; i < size; i++) {
@@ -328,7 +346,7 @@ public class Cleaner {
             return result;
         }
 
-        //..és a többit
+        // other cases
         Map<String, List<String>> blocks = prefixBlocks(level, levelNumber);
 
         for (Map.Entry<String, List<String>> entry : blocks.entrySet()) {
@@ -337,7 +355,7 @@ public class Cleaner {
             int size = suffixes.size();
             for (int i = 0; i < size; i++) {
                 String suffixI = key + suffixes.get(i) + ":";
-                for (int j = i + 1; j < size; j++) {//TODO: ez itt nagyon szar, át kéne gondolni az egészet
+                for (int j = i + 1; j < size; j++) { // TODO: refactor, rethink
                     String candidate = suffixI + suffixes.get(j);
                     String[] parts = candidate.split(":");
                     boolean containsAll = true;
@@ -360,7 +378,7 @@ public class Cleaner {
             }
         }
 
-        //TODO: ezt időoptimalizáció miatt vettem ki, memória miatt még szükség lehet rá.
+        // TODO: removed for optimization, check is needed
         //blocks.clear();
         //System.gc();
         //logger.info("level generation from " + level + ": " + result);
@@ -368,17 +386,16 @@ public class Cleaner {
     }
 
     /**
-     * Attribútumok egy listájához kiszámítja a prefix blokkokat. Az eredmény egy map,
-     * amiben a kulcsok a prefixek, és minden kulcshoz tartozik egy lista, amiben az
-     * ahhoz kapcsolódó suffixek vannak.
-     * 
+	 * Computes the prefix blocks for a given attribute list. In the result the keys
+	 * are the prefixes and the values are the corresponding suffixes.
+	 *
      * @param level
      * @return
      */
     private Map<String, List<String>> prefixBlocks(List<String> level, int levelNumber) {
         Map<String, List<String>> result = new TreeMap<String, List<String>>();
 
-        //külön kezeljük az első szintet..
+        // first level
         if (levelNumber == 1) {
             for (String attribute : level) {
                 List<String> t = new ArrayList<String>();
@@ -389,7 +406,7 @@ public class Cleaner {
             return result;
         }
 
-//..és a többit
+		// other cases
         for (String attributeList : level) {
             int index = attributeList.lastIndexOf(":");
             String prefix = attributeList.substring(0, index);
@@ -409,15 +426,15 @@ public class Cleaner {
     }
 
     /**
-     * Maga a fő algoritmus.
+     * The main algorithm.
      */
     public void proceed() throws SQLException {
-        int l = 1; //hányadik szinten járunk
+        int l = 1; // the level
 
         createPartitions();
         sortBasePartitions();
 
-        List<String> level = new ArrayList<String>(attributes); //ebből még fogunk eltávolítani
+        List<String> level = new ArrayList<String>(attributes); 
         for (Iterator<String> it = level.iterator(); it.hasNext();) {
             String att = it.next();
             if (partitions.get(att).getNumberOfClasses() == numberOfRows) {
@@ -440,14 +457,15 @@ public class Cleaner {
     }
 
     /**
-     * Kiszámítja a függőségeket, azaz feltölti a <code>dependencies</code> mapet.
+     * Computes the dependencies and puts them to the <code>dependencies</code> map.
      *
-     * @param level Az aktuális szint.
+     * @param level 
+	 * @param levelNumber
      */
     private void computeDependencies(List<String> level, int levelNumber) {
         Map<String, List<String>> newCandidates = new HashMap<String, List<String>>();
 
-        //a jelölthalmazok kiszámítása
+        // generating candidate sets
         for (String attributeList : level) {
             List<String> candidateList = null;
             List<String> subs = subSets(attributeList, levelNumber);
@@ -465,14 +483,13 @@ public class Cleaner {
                 }
             }
 
-            //TODO:itt eredetileg nem ez állt és lehet nem is kéne
             newCandidates.put(attributeList, candidateList);
         }
 
         candidateLists = newCandidates;
 
-        //a függőségek tényleges kiszámítása
-        for (String attributeList : level) { //for X eleme L
+        // dependencies are computed here
+        for (String attributeList : level) { // for X in L
             List<String> subs = Arrays.asList(attributeList.split(":"));
             List<String> candidateList = candidateLists.get(attributeList);
             if (candidateList != null && candidateList.size() > 0) {
@@ -481,11 +498,11 @@ public class Cleaner {
 
                     if (candidateList.contains(att)) {
                         String dep = attributeListMinusAttribute(attributeList, att) + "->" + att;
-                        Collection<Integer> toDelete = checkDependency(dep); //TODO: ezen a sztringkezelésden javítani, nameg ezt implementálni
+                        Collection<Integer> toDelete = checkDependency(dep); // TODO: change string handling
 
                         if (toDelete != null) {
                             int deletand = toDelete.size();
-                            if ((double) (deletand) / numberOfRows <= getEpsilon()) { //ha jó
+                            if ((double) (deletand) / numberOfRows <= getEpsilon()) { // valid dependency
                                 if (dependencies == null) {
                                     dependencies = new ArrayList<String>();
                                 }
@@ -511,12 +528,10 @@ public class Cleaner {
     }
 
     /**
-     * Leellenőrzi, hogy egy függőség teljesül-e. Ez azt jelenti, hogy visszaad egy
-     * listát, amiben benne vannak azok a sorok, amiket törölni kell a függőség
-     * érvényessé válásához.
+     * Return the rows that break the dependency <code>dep</code>.
      *
-     * @param dep A függőség.
-     * @return A törlendő sorok sorszámát tartalmazó lista.
+     * @param dep 
+     * @return 
      */
     private Collection<Integer> checkDependency(String dep) {
         logger.info("checking dependency " + dep);
