@@ -11,10 +11,10 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 /**
- * Egy partíciót reprezentál. A partíciók mindig egy attribútumhoz tartoznak és
- * ekvivalencia osztályokból állnak.
+ * Represents a partition. A partition belongs to an attribute set and contains equivalence classes.
+ * For every different value set on that attribute set there's an EC in the partition.
  * <br>
- * Ebben az implementációban csak egész típusú sorazonosítókat fogad el az osztály.
+ * This implementation accepts only integers as row IDs.
  *
  * @author tajti ákos
  */
