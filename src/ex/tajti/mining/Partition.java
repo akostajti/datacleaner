@@ -21,40 +21,37 @@ import java.util.logging.Logger;
 public class Partition {
 
     /**
-     * A partíció ekvivalencia osztályait tároló lista.
+     * The list of ECs in the partition.
      */
     private List<EquivalenceClass<Object, Integer>> classes;
+
     /**
-     * Az attribútum neve, amihez a partíció tartozik.
+     * The attribute set of the partition.
      */
     private String attribute;
+
     /**
-     * A feldolgozás szintje, amin a partíciót létrehozta az alkalmazás. Optimalizácisó
-     * szerepe van: ez alapján dönthető el, hogy szükség van-e a partícióra, vagy sem.
+	 * The level of the processing on which the partition was created.
      */
     private int level = -1;
+
     /**
-     * A <code>strip()</code> metódus által eltávolított sorok száma.
+     * The number of rows removed by the <code>strip()</code> method.
      */
     private int strippedRows;
+
     /**
-     * A <code>strip()</code> metódus által eltávolított sorazonosítók halmaza.
+     * The list of row IDs removed by <code>strip()</code>.
      */
     private Set<Integer> rowsStripped = new HashSet<Integer>();
 
-    /**
-     * Létrehoz egy példányt <code>attribute</code> atribútumhoz.
-     *
-     * @param attribute
-     */
     public Partition(String attribute) {
         this.attribute = attribute;
         classes = new ArrayList<EquivalenceClass<Object, Integer>>();
     }
 
     /**
-     * Létrehoz egy partíciót a <code>attribute</code> attribútumhoz és hozzáadja
-     * <codde>classes</code> ekvivalencia osztályait.
+     * Adds a list of ECs to the partition.
      *
      * @param attribute
      * @param classes
@@ -65,11 +62,9 @@ public class Partition {
     }
 
     /**
-     * Az attribútum halmaz alapján kiszámítja, hogy hányadik szinten jött létre
-     * a partícó.
+     * Computes the level on which the partition was created.
      *
-     * @param attributeList Az attribútumok :-tal elválasztott listája. Egy attribútum
-     * esetn nincs :.
+     * @param 
      * @return
      */
     private int getLevelNumber(String attributeList) {
@@ -77,7 +72,7 @@ public class Partition {
     }
 
     /**
-     * Visszaadja a partíció ekvivalencia osztályainak számát.
+     * Returns the number of ECs in the partition.
      *
      * @return
      */
