@@ -782,29 +782,29 @@ public class Cleaner {
     }
 
     /**
-     * Előállít egy help stringet az alkalmazás parancssori opcióiról.
+     * Returns a help describing the usage and command line arguments.
      * 
      * @return
      */
     private String getUsage() {
-        StringBuilder builder = new StringBuilder("Haszálat: java ex.tajti.mining.Cleaner -t <tábla> -a <attribútumok> [opciók]\n");
-        builder.append("<tábla>: a tisztítandó tábla neve\n");
-        builder.append("<attribútumok>: azoknak az attribútumoknak a vesszővel elválasztott neve, amiknek szerepelniük kell a lekédrdezésben\n");
-        builder.append("Opciók:\n");
-        builder.append("-help: megjeleníti ezt a szöveget\n");
-        builder.append("-j url: a JDBC url, amin keresztül az adatbázis elérhető. Megadása kötelező\n");
-        builder.append("-s: Ha nincs megadva, akkor a teljes adatbázis tartalmát feldolgozza, különben mintát használ.\n");
-        builder.append("-jd driver: a JDBC driver osztály teljesen minősített neve.  Kötelező megadni. Jelenleg csak MySQL-lel működik.\n");
-        builder.append("-d delta: delta a mintavételezésnél használt érték. Az alapételmezett érték 0.05.\n");
-        builder.append("-c n: n méretű részrelációnként dolgozza fel a tábla adatait\n");
-        builder.append("-e epszilon: az epszilon értéke. Megadása kötelező. Az alapértelmezett érték 0.05.\n");
+        StringBuilder builder = new StringBuilder("Usage: java ex.tajti.mining.Cleaner -t <table> -a <attributes> [options]\n");
+        builder.append("<table>: the name of the table to be cleaned\n");
+        builder.append("<attributes>: the name of the attributes the query must contain.\n");
+        builder.append("Options:\n");
+        builder.append("-help: prints this help message\n");
+        builder.append("-j url: the JDBC url of the database used. MANDATORY\n");
+        builder.append("-s: processing all rows in the table can be time and memory consuming. If this option is specified the application processes"
+			+ " only a portion of the rows. The number of rows computes based on epsilon and delta.\n");
+        builder.append("-jd driver: the fully qualified name of the JDBC driver. Must be in the classpath  MANDATORY. (Currently works only with mysql)\n");
+        builder.append("-d delta: the value used for computing the sample (see documentation). The default value is 0.05.\n");
+        builder.append("-c n: process the table n chunks of n rows\n");
+        builder.append("-e epsilon: the epsilon value (see documentation). MANDATORY 0.05.\n");
 
         return builder.toString();
     }
 
     /**
-     * Feldolgozza a parancssori argumentumokat és visszaad egy megfelelően beállított
-     * <code>Cleaner</code> objektumot.
+     * Processes the command line arguments and creates a <code>Cleaner</code> instance.
      *
      * @param args A parancssori argumentumok.
      */
@@ -882,9 +882,12 @@ public class Cleaner {
         System.out.println(Partition.continued);
         StringBuilder builder = new StringBuilder();
         builder.append("================ General ============\n").append("Date: " + new Date() + "\n");
-        builder.append("============= Statistics ============\n").append("Time elapsed: " + (System.currentTimeMillis() - beginning) + "\n").append("Number of rows: " + tane.numberOfRows + "\n").append("Sample size: " + (tane.sampled ? tane.sampleSize : "not sampled") + "\n").append("Chunk size: " + (tane.chunks ? tane.chunkSize : "not chunked") + "\n").append("Table: " + tane.table + "\n").append("Attribute count: " + tane.attributes.size() + "\n").append("Epsilon: " + tane.epsilon + "\n").append("Delta: " + tane.delta + "\n").append("Possible dependencies: " + possibleDependencies + "\n").append("Dependencies checked: " + dependenciesChecked + "\n").append("Dependencies found: " + (tane.getDependencies() == null ? 0 : tane.getDependencies().size()) + "\n");
-//        System.out.println("EREDMÉNY: " + tane.getDependencies());
-//        System.out.println("a törlendő sorok:\n" + tane.deletandMap);
+        builder.append("============= Statistics ============\n").append("Time elapsed: " + (System.currentTimeMillis() - beginning) + "\n")
+			.append("Number of rows: " + tane.numberOfRows + "\n").append("Sample size: " + (tane.sampled ? tane.sampleSize : "not sampled") + "\n")
+			.append("Chunk size: " + (tane.chunks ? tane.chunkSize : "not chunked") + "\n").append("Table: " + tane.table + "\n")
+			.append("Attribute count: " + tane.attributes.size() + "\n").append("Epsilon: " + tane.epsilon + "\n").append("Delta: " + tane.delta + "\n")
+			.append("Possible dependencies: " + possibleDependencies + "\n").append("Dependencies checked: " + dependenciesChecked + "\n")
+			.append("Dependencies found: " + (tane.getDependencies() == null ? 0 : tane.getDependencies().size()) + "\n");
         if (tane.getDependencies() != null) {
             builder.append("========== Dependencies =============\n");
             for (String dep : tane.getDependencies()) {
