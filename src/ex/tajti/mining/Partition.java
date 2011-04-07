@@ -81,9 +81,9 @@ public class Partition {
     }
 
     /**
-     * Visszadja azt az ekvivalencia osztályt, amihez a <code>attributeValue</code>
-     * classifier érték tartozik. Ha nics ilyen, akkor a viszatérési érték <code>null</code>.
-     *
+	 * Finds the EC in the partition that has the <code>attributeValue</code> value on the attribute set.
+	 * If there's no such EC the return value is <code>null</code>.
+	 *
      * @param attributeValue
      * @return
      */
@@ -98,13 +98,14 @@ public class Partition {
     }
 
     /**
-     * Hozzáad egy sort a partícióhoz. A sor azonosítója <code>rowId</code> és a sor
-     * értéke a partícióhoz tartozó attribútum halmazon <code>attributeValue</code>.
-     *
+	 * Adds a row with <code>rowId</code> to the partition. First it tries to find an EC
+	 * for <code>attributeValue</code> and if finds it then adds the row to that. Otherwise
+	 * a new EC is creates.
+	 *
      * @param rowId
      * @param attributeValue
      */
-    public void addRow(Integer rowId, Object attributeValue) { //TODO: még ezt a metódus megnézni
+    public void addRow(Integer rowId, Object attributeValue) { //TODO: review
         EquivalenceClass<Object, Integer> eqClass = getClassWithClassifier(attributeValue);
 
 //        logger.info(attribute + " eqClass for " + attributeValue + ": " + eqClass);
@@ -117,8 +118,8 @@ public class Partition {
     }
 
     /**
-     * Eltávolít minden egyelemű ekvivalencia osztályt a partícióból, miközben a
-     * <code>rowsStripped</code> halmazhoz adja az eltávolított azonosítókat.
+	 * Removes every ECs containing only one rows from the partition. The removed rows
+	 * are added to <code>rowsStripped</code>.
      */
     public void strip() { 
         Iterator<EquivalenceClass<Object, Integer>> it = getClasses().iterator();
@@ -134,7 +135,7 @@ public class Partition {
     }
 
     /**
-     * Visszaadja azt az attribútum halmazt, amihez a partíció tartozik.
+	 * Returns thr attribute set of the partition.
      *
      * @return the attribute
      */
@@ -143,8 +144,8 @@ public class Partition {
     }
 
     /**
-     * Egy ekvivalencia osztály halmaz minden elemét hozzáadja a partícióhoz.
-     *
+     * Adds all ECs from the set to the partition.
+	 *
      * @param set
      */
     public void addClasses(Set<EquivalenceClass<Object, Integer>> set) {
@@ -154,14 +155,14 @@ public class Partition {
     }
 
     /**
-     * Az aktuális partíciót összeszorozza a <code>part</code> partícióval.
-     * <br>
-     * Ha az adott partíció az <code>X</code> attribtum halmazhoz tartozik <code>part</code>
-     * pedig <code>A</code>-hoz, akkor a szorzás eredménye az <code>XA</code>
-     * attribútum halmazhoz tartozó partícdió.
+	 * Multiplies this partition with <code>part</code>. The result is computed as follows:
+	 * <br/>
+	 * If this partition is generated based on attribute set <code>X</code> and <code>part</code>
+	 * is based on <code>A</code> then the result partition is based on <code>XA</code> (concatenation
+	 * of the attribute sets).
      *
      * @param part
-     * @return Az előállított partíció, vagy <code>null</code>, ha hiba történt.
+     * @return null if there was an error
      */
     public Partition multiply(Partition part) {
         if (part == null) {
@@ -210,7 +211,7 @@ public class Partition {
     }
 
     /**
-     * Visszadja annak a szintnek a számát, amin a partíciót létrehozta az algoritmus.
+     * Returns the level on which the partition was created.
      *
      * @return the level
      */
@@ -236,12 +237,11 @@ public class Partition {
      * @param extended
      * @return
      */
-    public Collection<Integer> getRowsToDelete(Partition extended) { //TODO: jó alaposan tesztelni és optimalizálni
-        if (extended == null /*|| !extended.attribute.contains(attribute)*/) { //TODO: ezt a fdeltételt jóhszemből vettem ki.
+    public Collection<Integer> getRowsToDelete(Partition extended) { //TODO: test this
+        if (extended == null /*|| !extended.attribute.contains(attribute)*/) { 
             System.out.println("unsupported attribute");
             return null;
         }
-        //TODO: itt eredetileg arraylist állt, nemtom, az gyorsabb-e
         Set<Integer> result = new HashSet<Integer>();
 
 
@@ -257,7 +257,7 @@ public class Partition {
             int max = 0; //a maximális méretű részhalmaz
             Integer maxRow = null;
             List<Integer> clRows = cl.getRows();
-            for (Integer row : clRows) {//TODO: lehetne SortedSetet használni, akkor ez sokkal egyszerűbb lenne
+            for (Integer row : clRows) { // TODO: is SortedSet better?
                 Integer size = idAndSize.get(row);
                 if (size != null && size > max) {
                     max = size;
@@ -267,11 +267,11 @@ public class Partition {
             }
 
             EquivalenceClass<Object, Integer> maxSuperclass = null;
-            if (max == 0) { //ez akkor lehet, ha minden részhalmazát törölte a strip, ilyenkor az egyiket visza kell rakni
+            if (max == 0) { // the case when aéé Ecs were stripped. one must be put back.
                 EquivalenceClass<Object, Integer> newClass = new EquivalenceClass<Object, Integer>();
                 newClass.addRow(clRows.get(0));
                 extended.classes.add(newClass);
-                continue; //TODO: ez nemtom kell-e ilyenkor
+                continue; 
             }
 
             for (EquivalenceClass<Object, Integer> clazz : extendedClasses) {
