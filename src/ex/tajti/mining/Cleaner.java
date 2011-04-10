@@ -1,6 +1,5 @@
 package ex.tajti.mining;
 
-import com.mysql.jdbc.ResultSetMetaData;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,6 +25,8 @@ import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.mysql.jdbc.ResultSetMetaData;
+
 /**
  * Implements the modified TANE algorithm. This version can be used to find rows breaking some
  * functional dependencies. These dependencies are computed based on the current contents of the
@@ -36,6 +37,7 @@ import java.util.logging.Logger;
  * @author Akos Tajti
  */
 public class Cleaner {
+	private static final Logger logger = Logger.getLogger(Cleaner.class.getSimpleName());
 
 	static SimpleDateFormat format = new SimpleDateFormat("yMd-Hm");
 	/**
@@ -105,8 +107,6 @@ public class Cleaner {
 	 */
 	private int numberOfRows;
 
-	private Logger logger = Logger.getLogger(this.getClass().getSimpleName());
-
 	/**
 	 * Contains the rows breaking dependencies. the keys are the dependencies (represented as <code>String</code>s).
 	 * The values are collections of row ids.
@@ -158,6 +158,7 @@ public class Cleaner {
 	private void sortBasePartitions() {
 		Collections.sort(attributes, new Comparator<String>() {
 
+			@Override
 			public int compare(String o1, String o2) {
 				Partition part1 = partitions.get(o1);
 				Partition part2 = partitions.get(o2);
@@ -186,13 +187,13 @@ public class Cleaner {
 			out = new FileOutputStream(file);
 			out.write(builder.toString().getBytes());
 		} catch (IOException ex) {
-			Logger.getLogger(Cleaner.class.getName()).log(Level.SEVERE, null, ex);
+			logger.log(Level.SEVERE, null, ex);
 		} finally {
 			if (out != null) {
 				try {
 					out.close();
 				} catch (IOException ex) {
-					Logger.getLogger(Cleaner.class.getName()).log(Level.SEVERE, null, ex);
+					logger.log(Level.SEVERE, null, ex);
 				}
 			}
 		}
@@ -276,7 +277,7 @@ public class Cleaner {
 				}
 			}
 		} catch (SQLException ex) {
-			Logger.getLogger(Cleaner.class.getName()).log(Level.SEVERE, null, ex);
+			logger.log(Level.SEVERE, null, ex);
 			throw ex;
 		} finally {
 			if (conn != null) {
@@ -304,13 +305,13 @@ public class Cleaner {
 				rowNumber = cnt.getInt(1);
 			}
 		} catch (SQLException ex) {
-			Logger.getLogger(Cleaner.class.getName()).log(Level.SEVERE, null, ex);
+			logger.log(Level.SEVERE, null, ex);
 		} finally {
 			if (st != null) {
 				try {
 					st.close();
 				} catch (SQLException ex) {
-					Logger.getLogger(Cleaner.class.getName()).log(Level.SEVERE, null, ex);
+					logger.log(Level.SEVERE, null, ex);
 				}
 			}
 		}
@@ -322,8 +323,8 @@ public class Cleaner {
 	 * in <code>level</code>. Attribute sets are represented as strings in this format: attr1:attr2:attr3.
 	 * the method assumes that the attributes are ordered.
 	 *
-	 * @param level Egy adott szint attribútumait/attribútum halmazait tartalmazó lista.
-	 * @return A következő szint atribútumait/attribútum halmazait tartalmazó lista.
+	 * @param level
+	 * @return
 	 */
 	private List<String> generateNextLevel(List<String> level, int levelNumber) {
 		if (level == null || level.size() == 0) {
@@ -563,11 +564,11 @@ public class Cleaner {
 	}
 
 	/**
-	 * Előállítja egy attribútumlista összes eggyel kevesebb attribútumot tartalmazó
-	 * részhalmazát. A listában az attribútumok :-tal vannak elválasztva.
+	 * Generates the list of attribute sets that contain one less attribute than
+	 * <code>attributeList</code>. The attributes in a set are separated by :.
 	 *
-	 * @param attrbuteList Az attribútumlista.
-	 * @return A részhalmazok listája.
+	 * @param attrbuteList
+	 * @return
 	 */
 	private List<String> subSets(String attrbuteList, int levelNumber) {
 		if (levelNumber == 1) {
@@ -587,11 +588,10 @@ public class Cleaner {
 	}
 
 	/**
-	 * Egy atribútumlistából vivesz egy attribútumot és visszaadja az így kapott
-	 * attribútumlistát.
+	 * Removes an attribute from an attribute set.
 	 *
-	 * @param attributeList A csonkítandó lista.
-	 * @param attribute Az attribútum, amit el kell távolítani.
+	 * @param attributeList
+	 * @param attribute
 	 * @return <code>attributeList\attribute</code>.
 	 */
 	private String attributeListMinusAttribute(String attributeList, String attribute) {
@@ -606,13 +606,12 @@ public class Cleaner {
 	}
 
 	/**
-	 * Elvégzi a szint metszését és visszadja az új szintet.
+	 * Prunes the level and returns the new level.
 	 *
 	 * @param level
 	 * @return
 	 */
 	private List<String> prune(List<String> level) {
-		//TODO: itt is az optimlizáció miatt lett ez linkedlist
 		List<String> result = new LinkedList<String>(level);
 		for (int i = 0; i < result.size(); i++) {
 			String attributeList = level.get(i);
@@ -621,7 +620,7 @@ public class Cleaner {
 				result.remove(attributeList);
 			}
 
-			Partition partition = partitions.get(attributeList); //TODO: ezt a feltételt a dogába is beletenni
+			Partition partition = partitions.get(attributeList);
 			if (partition != null && (partition.getClasses().size() + partition.getStrippedRows()) == numberOfRows) {
 				result.remove(attributeList);
 			}
@@ -631,8 +630,7 @@ public class Cleaner {
 	}
 
 	/**
-	 * Ha mintát használtunk, akkor ezzel a metódussal verifikálhatjuk a
-	 * megtalált függőségeket.
+	 * Verifies the found functional dependencies. Validation is neccessary when using sample.
 	 */
 	public void verifyDependencies() {
 		boolean oldChunks = chunks;
@@ -640,7 +638,7 @@ public class Cleaner {
 		Connection conn = null;
 		Statement st = null;
 		try {
-			conn = DriverManager.getConnection(jdbcUrl); //TODO: kivenni a literálokat
+			conn = DriverManager.getConnection(jdbcUrl);
 
 			st = conn.createStatement();
 			int rowNumber = retreiveTableSize(conn);
@@ -669,11 +667,11 @@ public class Cleaner {
 				String[] parts = newDep.split(":");
 				int[] attributeIndexes = new int[parts.length];
 
-				for (int i = 0; i < parts.length; i++) { //el kell rakni, hogy az egyeds attribútumok mely oszlophoz tartoznak
+				for (int i = 0; i < parts.length; i++) {
 					attributeIndexes[i] = attributes.indexOf(parts[i]);
 				}
 				for (int i = 0; i < data.length; i++) {
-					if (toDelete.contains(i)) //ezeket már lehet a lekérdezésnél ki kellene hagyni
+					if (toDelete.contains(i)) // TODO: optimization?
 					{
 						continue;
 					}
@@ -681,7 +679,7 @@ public class Cleaner {
 				}
 			}
 		} catch (SQLException ex) {
-			Logger.getLogger(Cleaner.class.getName()).log(Level.SEVERE, null, ex);
+			logger.log(Level.SEVERE, null, ex);
 		}
 
 		chunks = oldChunks;
@@ -853,8 +851,8 @@ public class Cleaner {
 				try {
 					Class.forName(jdbcDriver);
 				} catch (ClassNotFoundException ex) {
-					System.out.println("A driver osztály nem található.");
-					Logger.getLogger(Cleaner.class.getName()).log(Level.SEVERE, null, ex);
+					System.out.println("driver class cannot be found");
+					logger.log(Level.SEVERE, null, ex);
 				}
 
 				++i;
@@ -862,7 +860,7 @@ public class Cleaner {
 		}
 
 		if (jdbcDriver == null || jdbcUrl == null || attributes == null || table == null) {
-			System.out.println("A -jd, -j, -a és -t opciók használata kötelező.");
+			System.out.println("The -jd, -j, -a and the -t options are mandatory.");
 			System.exit(1);
 		}
 	}
