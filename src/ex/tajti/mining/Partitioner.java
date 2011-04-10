@@ -8,39 +8,37 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 /**
- * Egy lekérdezés eredménye alapján elkészíti a kiindulási partíciókat, azaz
- * azokat, amelyek az egyelemű attribútum halmazokhoz tartoznak.
+ * Creates the base partitions from the result of a query. Base partitions are partitions
+ * based on attribute sets with one element.
  *
  * @author tajti ákos
  */
 public class Partitioner {
 
     /**
-     * A <code>ResultSet</code> objektum, amivel a lekérdezés eredményét elérjük.
+     * The <code>ResultSet</code> containing the result of the query.
      */
     private ResultSet results;
     /**
-     * Az attribútumokat és a hozzájuk tartozó partíciókat összerendelő map.
+     * Maps attributes to partitions.
      */
     private Map<String, Partition> partitions;
     /**
-     * Az attribútumok nevei.
+     * Names of the columns in the result set.
      */
     private String[] columnNames;
     /**
-     * A lekérdezés metainformációi.
+     * Metainformation gained from the result set.
      */
     private ResultSetMetaData meta;
     private Logger logger = Logger.getLogger(this.getClass().getSimpleName());
     /**
-     * A ledkérdezés eredényében visszakapott sorok száma.
+     * The number of rows in the result.
      */
     private Integer numberOfRows;
 //    private int sampleSize;
 
     /**
-     * Példányosítja az osztályt.
-     *
      * @param results
      * @throws java.sql.SQLException
      */
@@ -55,8 +53,8 @@ public class Partitioner {
     }
 
     /**
-     * Elkészíti a partíciókat és az automatikusan generált sorazonosítók közül
-     * az első értéke <code>i</code>.
+	 * Creates the partitions. For each row an integer row id is generated. The first
+	 * id will be <code>i</code>.
      *
      * @param i
      * @throws java.sql.SQLException
@@ -67,7 +65,7 @@ public class Partitioner {
     }
 
     /**
-     * Elkészíti a partíciókat.
+     * Creates the partitions.
      *
      * @throws java.sql.SQLException
      */
@@ -76,9 +74,9 @@ public class Partitioner {
     }
 
     /**
-     * Feldolgozza a resultsetet. Minden sorhoz generál egy azonosítót. <code>j</code>
-     * az első sorazonosító értéke.
-     *
+	 * Processes the result set and generates a row id for each row. The value of the first id
+	 * is <code>j</code>.
+	 *
      * @param j
      * @return
      * @throws java.sql.SQLException
@@ -98,8 +96,7 @@ public class Partitioner {
     }
 
     /**
-     * Feldolgozza a resultsetet. Minden sorhoz automatikusan generál egy azonosítót.
-     * Az első azonosító értéke 0.
+     * The same as <code>processResult(0)</code>.
      *
      * @return
      * @throws java.sql.SQLException
@@ -109,7 +106,7 @@ public class Partitioner {
     }
 
     /**
-     * Elvégzi a partíciók elészítéséhez szükséges műveleteket.
+     * Initializes the <code>partitions</code> map.
      *
      * @throws java.sql.SQLException
      */
@@ -120,8 +117,8 @@ public class Partitioner {
     }
 
     /**
-     * Visszaadja a kiszámított partíciókat. A mapben a kulcs egy attribútum neve,
-     * az érték pedig az attribútumhoz tartozó partíció.
+     * Returns the partitions. The key in each entry is an attribute name and 
+	 * the value is a <code>Partition</code> object.
      *
      * @return 
      */
@@ -130,7 +127,7 @@ public class Partitioner {
     }
 
     /**
-     * Visszaadja a lekérdezés sorainak számát.
+     * Returns the number of rows in the result.
      *
      * @return
      */
