@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<project name="datacleaner" default="dist" basedir=".">
+	<loadproperties srcFile="build.properties"/>
+	<property name="lib.dir" value="./lib"/>
+	<property name="build.dir" value="./build/classes"/>
+	<property name="dist.dir" value="./dist"/>
+	<property name="src.dir" value="./src"/>
+
+	<path id="class.path">
+		<fileset dir="${lib.dir}">
+			<include name="**/*.jar"/>
+		</fileset>
+	</path>
+
+	<target name="dist" depends="compile">
+		<mkdir dir="${dist.dir}"/>
+		<mkdir dir="${build.dir}/lib"/>
+		<copy file="MANIFEST.MF.sample" tofile="${build.dir}/MANIFEST.MF"/>
+		<replace file="${build.dir}/MANIFEST.MF" token="{dc.version}" value="${dc.version}"/>
+		<copy todir="${build.dir}/lib">
+			<fileset dir="${lib.dir}"/>
+		</copy>
+		<jar basedir="${build.dir}" destfile="${dist.dir}/datacleaner-${dc.version}.jar" manifest="${build.dir}/MANIFEST.MF"/>
+	</target>
+
+	<target name="compile" depends="clean">
+		<mkdir dir="${build.dir}"/>
+		<javac sourcepath="" srcdir="${src.dir}" destdir="${build.dir}"
+			classpathref="class.path">
+			<include name="**/*.java"/>
+		</javac>
+	</target>
+
+	<target name="clean">
+		<delete dir="${build.dir}"/>
+		<delete dir="${dist.dir}"/>
+	</target>
+
+</project>

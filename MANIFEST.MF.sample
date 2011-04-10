@@ -1,0 +1,2 @@
+Main-Class: ex.tajti.mining.Cleaner
+Class-Path: lib/datacleaner-{dc.version}.jar
