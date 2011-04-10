@@ -228,11 +228,10 @@ public class Partition {
     //private static List<EquivalenceClass<Object, Integer>> result;
 
     /**
-     * Visszaadja azoknak az ekvivalencia osztályoknak a listáját, amit az <code>extended</code>
-     * partícióból törölni kell ahhoz, hogy az <code>attribute -> extended.attribute</code>
-     * függőség teljesüljön. Itt <code>attribute</code> része <code>extended.attribute</code>-nak.
-     * Ha ez nem teljesül, vagy <code>extended == null</code>, akkor a metódus
-     * <code>null</code>-t ad vissza.
+	 * Returns the list of equivalence classes that must be deleted from <code>extended</code>
+	 * in order to make the <code>attribute -> extended.attribute</code> functional dependency
+	 * valid. <code>attribute</code> must be a subset of <code>extended.attribute</code>. If this
+	 * is not the case or <code>extended</code> is <code>null</code> the method returns <code>null</code>.
      *
      * @param extended
      * @return
@@ -254,7 +253,7 @@ public class Partition {
         }
 
         for (EquivalenceClass<Object, Integer> cl : classes) {
-            int max = 0; //a maximális méretű részhalmaz
+            int max = 0; // the size of the biggest subset
             Integer maxRow = null;
             List<Integer> clRows = cl.getRows();
             for (Integer row : clRows) { // TODO: is SortedSet better?
@@ -267,7 +266,7 @@ public class Partition {
             }
 
             EquivalenceClass<Object, Integer> maxSuperclass = null;
-            if (max == 0) { // the case when aéé Ecs were stripped. one must be put back.
+            if (max == 0) { // the case when all ECs were stripped. one must be put back.
                 EquivalenceClass<Object, Integer> newClass = new EquivalenceClass<Object, Integer>();
                 newClass.addRow(clRows.get(0));
                 extended.classes.add(newClass);
@@ -309,10 +308,10 @@ public class Partition {
     }
 
     /**
-     * Megszámolja, hány sor van összesen ekvivalencia osztályok egy listájában.
+	 * Sums the number of rows of the ECs in <code>clazzes</code> and returns the result. 
      *
-     * @param clazzes Ekvivalencia osztályokat tartalmazó lista.
-     * @return Az ekvivalencia osztáylok sorainak száma összesítve.
+     * @param clazzes 
+     * @return 
      */
     public static Integer rowCount(List<EquivalenceClass<Object, Integer>> clazzes) {
         Integer count = 0;
@@ -324,9 +323,8 @@ public class Partition {
     }
 
     /**
-     * Elkészíti a partíció únióját <code>partition</code> partícióval. A két partíció 
-     * ugyanazon az attribútumon van értelmezve, de más sorok alapján készült.
-     * Az aktuális partíció (amire a metódust meghívtuk) is módosul.
+	 * Creates the union of this partition ant <code>other</code>. The two partition must be based on 
+	 * the same attribute set. The method modifies both objects.
      *
      * @param other
      * @return
@@ -364,7 +362,7 @@ public class Partition {
     }
 
     /**
-     * Visszaadja a partíció ekvivalencia osztályainak listáját.
+     * Returns the ECs of the partition.
      *
      * @return the classes
      */
@@ -373,14 +371,14 @@ public class Partition {
     }
 
     /**
-     * Kiüríti az ekvivalencia osztályok listáját.
+     * Removes all ECs from the partition.
      */
     public void clear() {
         classes.clear();
     }
 
     /**
-     * Visszaadja a <code>strip()</code> metódus által eltávolított sorok számát.
+     * Returns the number of rows removed by <code>strip()</code>.
      *
      * @return the strippedRows
      */
@@ -389,7 +387,7 @@ public class Partition {
     }
 
     /**
-     * Visszaadja a <code>strip()</code> metódus által eltávolított sorok listáját.
+     * Returns the list of rows removed by <code>strip()</code>.
      *
      * @return the rowsStripped
      */
