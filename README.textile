@@ -3,3 +3,5 @@ h1. What is  this datacleaner?
 datacleaner helps you to find corrupted elements in a datatable. It uses a "simple" data mining algorithm based on TANE. TANE is used to find functional dependencies that hold on a datatable. The idea is that if we find such dependencies we can use them to find the rows that break them. These rows are very probably corrupted.
 
 h1. How does it work?
+
+TODO
